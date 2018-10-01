@@ -58,6 +58,7 @@
 #endif
 
 static bool configfs_mounted = false;
+static bool card_sealed = false;
 
 static int mount_configfs()
 {
@@ -132,6 +133,12 @@ int AVIRT_SealCard()
   char path_sealed[AVIRT_CONFIGFS_PATH_MAXLEN];
   FILE *fd;
 
+  if (card_sealed)
+  {
+    AVIRT_ERROR("Card is already sealed!");
+    return -1;
+  }
+
   if (!configfs_mounted) {
     err = mount_configfs();
     if (err < 0)
@@ -149,4 +156,6 @@ int AVIRT_SealCard()
 
   fprintf(fd, "%d", 1);
   fclose(fd);
+
+  card_sealed = true;
 }
