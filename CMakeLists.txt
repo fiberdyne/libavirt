@@ -22,11 +22,9 @@
 #  LIBAVIRT CONFIGURATION LIBRARY
 #-------------------------------------------------------------------------------
 
-# Defines
-add_definitions(-D_GNU_SOURCE)
-
 # Target
-add_library(avirt STATIC src/avirt_*.c)
+file(GLOB SOURCE_FILES "src/avirt-*.c")
+add_library(avirt STATIC ${SOURCE_FILES})
 
 # Target includes
 target_include_directories(avirt PUBLIC include)

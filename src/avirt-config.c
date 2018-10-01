@@ -19,7 +19,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "avirt-config.h"
+#define _GNU_SOURCE
+
+#include <avirt/avirt.h>
 
 #include <stdbool.h>
 #include <alsa/asoundlib.h>
