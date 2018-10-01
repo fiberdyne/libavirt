@@ -24,12 +24,38 @@
 #include <avirt/avirt.h>
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <alsa/asoundlib.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
 
 #define AVIRT_CONFIGFS_PATH_STREAMS "/config/avirt/streams/"
 #define AVIRT_CONFIGFS_PATH_MAXLEN 64
+
+#define AVIRT_ERROR(errmsg) \
+  fprintf(stderr, "AVIRT ERROR: %s\n", errmsg);
+
+#define AVIRT_ERROR_V(errmsg, ...)                       \
+  do {                                                   \
+      char *errmsg_done;                                 \
+      asprintf(&errmsg_done, errmsg, ##__VA_ARGS__);     \
+      fprintf(stderr, "AVIRT ERROR: %s\n", errmsg_done); \
+      free(errmsg_done);                                 \
+  } while (0)
+
+#define AVIRT_DEBUG_ON
+#ifdef AVIRT_DEBUG_ON
+# define AVIRT_DEBUG(debugmsg) \
+  fprintf(stderr, "AVIRT DEBUG: %s\n", debugmsg);
+
+# define AVIRT_DEBUG_V(debugmsg, ...)                                      \
+  do {                                                                     \
+      char *debugmsg_done;                                                 \
+      asprintf(&debugmsg_done, debugmsg, ##__VA_ARGS__);                   \
+      fprintf(stderr, "[%s]: AVIRT DEBUG: %s\n", __func__, debugmsg_done); \
+      free(debugmsg_done);                                                 \
+  } while (0)
+#endif
 
 static bool configfs_mounted = false;
 
@@ -41,7 +67,7 @@ static int mount_configfs()
   if (!err)
     configfs_mounted = true;
   else
-    printf("AVIRT ERROR: Failed to mount configfs filesystem!");
+    AVIRT_ERROR("Failed to mount configfs filesystem!");
 
   return err;
 }
@@ -73,7 +99,7 @@ int AVIRT_CreateStream(const char *name, unsigned int channels, int direction)
 
   if ((AVIRT_CONFIGFS_PATH_MAXLEN - strlen(path)) < strlen(name))
   {
-    printf("AVIRT ERROR: Cannot create stream '%s' since name is too long!", name);
+    AVIRT_ERROR_V("Cannot create stream '%s' since name is too long!", name);
     return -ENOMEM;
   }
 
@@ -81,7 +107,7 @@ int AVIRT_CreateStream(const char *name, unsigned int channels, int direction)
   err = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
   if (err < 0)
   {
-    printf("AVIRT ERROR: Cannot create stream '%s' at directory '%s'\n", name, path);
+    AVIRT_ERROR_V("Cannot create stream '%s' at directory '%s'", name, path);
     return err;
   }
 
@@ -90,11 +116,12 @@ int AVIRT_CreateStream(const char *name, unsigned int channels, int direction)
   fd = fopen(path_chans, "w");
   if (!fd)
   {
-    printf("AVIRT ERROR: Failed to open file at '%s'", path_chans);
+    AVIRT_ERROR_V("Failed to open file at '%s'", path_chans);
     return -1;
   }
 
   fprintf(fd, "%d", channels);
+  fclose(fd);
 
   return 0;
 }
@@ -102,6 +129,8 @@ int AVIRT_CreateStream(const char *name, unsigned int channels, int direction)
 int AVIRT_SealCard()
 {
   int err;
+  char path_sealed[AVIRT_CONFIGFS_PATH_MAXLEN];
+  FILE *fd;
 
   if (!configfs_mounted) {
     err = mount_configfs();
@@ -109,14 +138,15 @@ int AVIRT_SealCard()
       return err;
   }
 
-  strcpy(path_sealed, AVIRT_);
-  strcat(path_chans, "/sealed");
-  fd = fopen(path_chans, "w");
+  strcpy(path_sealed, AVIRT_CONFIGFS_PATH_STREAMS);
+  strcat(path_sealed, "/sealed");
+  fd = fopen(path_sealed, "w");
   if (!fd)
   {
-    printf("AVIRT ERROR: Failed to open file at '%s'", path_chans);
+    AVIRT_ERROR_V("Failed to open file at '%s'", path_sealed);
     return -1;
   }
 
   fprintf(fd, "%d", 1);
+  fclose(fd);
 }
