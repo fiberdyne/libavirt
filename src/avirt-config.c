@@ -81,12 +81,22 @@ int AVIRT_CreateStream(const char *name, unsigned int channels, int direction)
   char path_chans[AVIRT_CONFIGFS_PATH_MAXLEN];
   FILE *fd;
 
-  if (!configfs_mounted) {
+  // Check whether the configfs filesystem is mounted
+  if (!configfs_mounted)
+  {
     err = mount_configfs();
     if (err < 0)
       return err;
   }
 
+  // Check if card is already sealed
+  if (card_sealed)
+  {
+    AVIRT_ERROR("Card is already sealed!");
+    return -EPERM;
+  }
+
+  // This indicates to AVIRT the direction of the stream
   strcpy(path, AVIRT_CONFIGFS_PATH_STREAMS);
   switch (direction) {
     case SND_PCM_STREAM_PLAYBACK:
@@ -113,6 +123,7 @@ int AVIRT_CreateStream(const char *name, unsigned int channels, int direction)
     return err;
   }
 
+  // Open file and write to it
   strcpy(path_chans, path);
   strcat(path_chans, "/channels");
   fd = fopen(path_chans, "w");
@@ -134,13 +145,15 @@ int AVIRT_SealCard()
   char path_sealed[AVIRT_CONFIGFS_PATH_MAXLEN];
   FILE *fd;
 
+  // Check if card is already sealed
   if (card_sealed)
   {
     AVIRT_ERROR("Card is already sealed!");
-    return -1;
+    return -EPERM;
   }
 
-  if (!configfs_mounted) {
+  if (!configfs_mounted)
+  {
     err = mount_configfs();
     if (err < 0)
       return err;
