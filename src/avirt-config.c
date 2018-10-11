@@ -20,8 +20,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define _GNU_SOURCE
-
 #include <avirt/avirt.h>
 
 #include <stdbool.h>
@@ -58,6 +56,17 @@
   } while (0)
 #endif
 
+#define WRITE_TO_PATH(path, fmt, args...) \
+  do { \
+    FILE *fd = fopen(path, "w"); \
+    if (!fd) { \
+      AVIRT_ERROR_V("Failed to open file at '%s'", path); \
+      return -EPERM; \
+    } \
+    fprintf(fd, fmt, ##args); \
+    fclose(fd); \
+  } while (0)
+
 static bool configfs_mounted = false;
 static bool card_sealed = false;
 
@@ -74,11 +83,12 @@ static int mount_configfs()
   return err;
 }
 
-int AVIRT_CreateStream(const char *name, unsigned int channels, int direction)
+int AVIRT_CreateStream(const char *name, unsigned int channels, int direction,
+                       const char *map)
 {
   int err;
   char path[AVIRT_CONFIGFS_PATH_MAXLEN];
-  char path_chans[AVIRT_CONFIGFS_PATH_MAXLEN];
+  char path_attr[AVIRT_CONFIGFS_PATH_MAXLEN];
   FILE *fd;
 
   // Check whether the configfs filesystem is mounted
@@ -123,18 +133,18 @@ int AVIRT_CreateStream(const char *name, unsigned int channels, int direction)
     return err;
   }
 
-  // Open file and write to it
-  strcpy(path_chans, path);
-  strcat(path_chans, "/channels");
-  fd = fopen(path_chans, "w");
-  if (!fd)
-  {
-    AVIRT_ERROR_V("Failed to open file at '%s'", path_chans);
-    return -1;
-  }
+  // Write channels
+  strcpy(path_attr, path);
+  strcat(path_attr, "/channels");
+  WRITE_TO_PATH(path_attr, "%d", channels);
 
-  fprintf(fd, "%d", channels);
-  fclose(fd);
+  if (map)
+  {
+    // Write mapping
+    strcpy(path_attr, path);
+    strcat(path_attr, "/map");
+    WRITE_TO_PATH(path_attr, "%s", map);
+  }
 
   return 0;
 }
@@ -161,15 +171,7 @@ int AVIRT_SealCard()
 
   strcpy(path_sealed, AVIRT_CONFIGFS_PATH_STREAMS);
   strcat(path_sealed, "/sealed");
-  fd = fopen(path_sealed, "w");
-  if (!fd)
-  {
-    AVIRT_ERROR_V("Failed to open file at '%s'", path_sealed);
-    return -1;
-  }
-
-  fprintf(fd, "%d", 1);
-  fclose(fd);
+  WRITE_TO_PATH(path_sealed, "%d", 1);
 
   card_sealed = true;
 }
