@@ -61,10 +61,16 @@ static bool card_sealed = false;
 static int mount_configfs()
 {
   int err;
-
+  struct stat st = {0};
+  if (stat("/config", &st) == -1)
+    mkdir("/config", S_IRWXU | S_IRWXG | S_IRWXO);
+  
   err = mount("none", "/config", "configfs", 0, NULL);
   if (!err)
+  {
+    AVIRT_DEBUG("Successfully mounted configfs");
     configfs_mounted = true;
+  }
   else
     AVIRT_ERROR("Failed to mount configfs filesystem!");
 
