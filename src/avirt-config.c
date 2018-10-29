@@ -33,27 +33,15 @@
 
 #define AVIRT_ERROR(errmsg) \
   fprintf(stderr, "AVIRT ERROR: %s\n", errmsg);
-
-#define AVIRT_ERROR_V(errmsg, ...)                       \
-  do {                                                   \
-      char *errmsg_done;                                 \
-      asprintf(&errmsg_done, errmsg, ##__VA_ARGS__);     \
-      fprintf(stderr, "AVIRT ERROR: %s\n", errmsg_done); \
-      free(errmsg_done);                                 \
-  } while (0)
+#define AVIRT_ERROR_V(fmt, args...) \
+      fprintf(stderr, "AVIRT ERROR: " fmt "\n", ##args);
 
 #define AVIRT_DEBUG_ON
 #ifdef AVIRT_DEBUG_ON
 # define AVIRT_DEBUG(debugmsg) \
   fprintf(stderr, "AVIRT DEBUG: %s\n", debugmsg);
-
-# define AVIRT_DEBUG_V(debugmsg, ...)                                      \
-  do {                                                                     \
-      char *debugmsg_done;                                                 \
-      asprintf(&debugmsg_done, debugmsg, ##__VA_ARGS__);                   \
-      fprintf(stderr, "[%s]: AVIRT DEBUG: %s\n", __func__, debugmsg_done); \
-      free(debugmsg_done);                                                 \
-  } while (0)
+# define AVIRT_DEBUG_V(fmt, args...) \
+  fprintf(stderr, "[%s]: AVIRT DEBUG: " fmt "\n", __func__, ##args);
 #endif
 
 #define WRITE_TO_PATH(path, fmt, args...) \
@@ -146,6 +134,8 @@ int AVIRT_CreateStream(const char *name, unsigned int channels, int direction,
     WRITE_TO_PATH(path_attr, "%s", map);
   }
 
+  AVIRT_DEBUG_V("Created stream: %s", name);
+
   return 0;
 }
 
@@ -172,6 +162,8 @@ int AVIRT_SealCard()
   strcpy(path_sealed, AVIRT_CONFIGFS_PATH_STREAMS);
   strcat(path_sealed, "/sealed");
   WRITE_TO_PATH(path_sealed, "%d", 1);
+
+  AVIRT_DEBUG("Card sealed!");
 
   card_sealed = true;
 }
