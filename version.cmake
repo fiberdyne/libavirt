@@ -1,0 +1,4 @@
+
+set (VERSION_MAJOR 0)
+set (VERSION_MINOR 0)
+set (VERSION_EXT   1)

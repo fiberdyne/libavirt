@@ -24,7 +24,7 @@
 #define _AVIRT_H_
 
 /**
- * AVIRT_CreateStream - Create a stream in AVIRT
+ * snd_avirt_stream_new - Create a stream in AVIRT
  * @name: The name of the stream
  * @channels: The number of channels for the stream
  * @direction: The stream direction (SND_PCM_STREAM_PLAYBACK or SND_PCM_STREAM_CAPTURE)
@@ -32,22 +32,22 @@
  * @return: 0 on success, negative ERRNO otherwise
  * 
  * Each stream creates a PCM device for the AVIRT sound card.
- * Streams will not appear to the user-space until `AVIRT_SealCard()` is called.
- * NOTE: Once `AVIRT_SealCard` is called, no more streams may be added.
+ * Streams will not appear to the user-space until `snd_avirt_card_seal()` is called.
+ * NOTE: Once `snd_avirt_card_seal` is called, no more streams may be added.
  */
-int AVIRT_CreateStream(const char *name, unsigned int channels, int direction,
+int snd_avirt_stream_new(const char *name, unsigned int channels, int direction,
                        const char *map);
 
 /**
- * AVIRT_SealCard - Finalize AVIRT stream creation and register sound card
+ * snd_avirt_card_seal - Finalize AVIRT stream creation and register sound card
  * @return: 0 on success, negative ERRNO otherwise
  * 
- * This should be called once all streams have been created via `AVIRT_CreateStream()`.
+ * This should be called once all streams have been created via `snd_avirt_stream_new()`.
  * Calling this function will register the AVIRT sound card to the user-space, and will
  * configure all mapped lower-level Audio Paths for the given stream configuration.
  * configuration.
  * Once this function is called, no more streams may be created.
  */
-int AVIRT_SealCard();
+int snd_avirt_card_seal();
 
 #endif // _AVIRT_H_

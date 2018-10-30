@@ -77,8 +77,8 @@ static int mount_configfs()
   return err;
 }
 
-int AVIRT_CreateStream(const char *name, unsigned int channels, int direction,
-                       const char *map)
+int snd_avirt_stream_new(const char *name, unsigned int channels, int direction,
+                         const char *map)
 {
   int err;
   char path[AVIRT_CONFIGFS_PATH_MAXLEN];
@@ -145,7 +145,7 @@ int AVIRT_CreateStream(const char *name, unsigned int channels, int direction,
   return 0;
 }
 
-int AVIRT_SealCard()
+int snd_avirt_card_seal()
 {
   int err;
   char path_sealed[AVIRT_CONFIGFS_PATH_MAXLEN];
