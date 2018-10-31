@@ -61,7 +61,30 @@ static bool card_sealed = false;
 static int mount_configfs()
 {
   int err;
+  char fsline[100];
+  bool configfs_supported = false;
+  FILE *procfs;
   struct stat st = {0};
+
+  // Check for /proc/filesystem for configfs support
+  procfs = fopen("/proc/filesystems", "r");
+  if (!procfs)
+    return -1;
+
+  while (fgets(fsline, 100, procfs))
+  {
+    if (!strstr(fsline, "configfs"))
+      continue;
+    configfs_supported = true;
+  }
+
+  if (!configfs_supported)
+  {
+    AVIRT_ERROR("configfs is not supported !");
+    return -1;
+  }
+
+  // Check whether /config dir exists, if not, create it
   if (stat("/config", &st) == -1)
     mkdir("/config", S_IRWXU | S_IRWXG | S_IRWXO);
   
