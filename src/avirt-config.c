@@ -28,7 +28,7 @@
 #include <sys/stat.h>
 #include <sys/mount.h>
 
-#define AVIRT_CONFIGFS_PATH_STREAMS "/config/avirt/streams/"
+#define AVIRT_CONFIGFS_PATH_STREAMS "/config/snd-avirt/streams/"
 #define AVIRT_CONFIGFS_PATH_MAXLEN 64
 
 #define AVIRT_ERROR(errmsg) \
