@@ -44,15 +44,30 @@
   fprintf(stderr, "[%s]: AVIRT DEBUG: " fmt "\n", __func__, ##args);
 #endif
 
-#define WRITE_TO_PATH(path, fmt, args...) \
-  do { \
-    FILE *fd = fopen(path, "w"); \
-    if (!fd) { \
+/**
+ * Checks whether the configfs filesystem is mounted
+ */
+#define IS_CONFIGFS_MOUNTED()                             \
+  do {                                                    \
+    int err;                                              \
+    if (!configfs_mounted) {                              \
+      err = mount_configfs();                             \
+      if (err < 0) return err;                            \
+    }                                                     \
+  } while (0)
+
+/**
+ * Write the given formatted string to a file given by path
+ */
+#define WRITE_TO_PATH(path, fmt, args...)                 \
+  do {                                                    \
+    FILE *fd = fopen(path, "w");                          \
+    if (!fd) {                                            \
       AVIRT_ERROR_V("Failed to open file at '%s'", path); \
-      return -EPERM; \
-    } \
-    fprintf(fd, fmt, ##args); \
-    fclose(fd); \
+      return -EPERM;                                      \
+    }                                                     \
+    fprintf(fd, fmt, ##args);                             \
+    fclose(fd);                                           \
   } while (0)
 
 static bool configfs_mounted = false;
@@ -108,13 +123,7 @@ int snd_avirt_stream_new(const char *name, unsigned int channels, int direction,
   char path_attr[AVIRT_CONFIGFS_PATH_MAXLEN];
   FILE *fd;
 
-  // Check whether the configfs filesystem is mounted
-  if (!configfs_mounted)
-  {
-    err = mount_configfs();
-    if (err < 0)
-      return err;
-  }
+  IS_CONFIGFS_MOUNTED();
 
   // Check if card is already sealed
   if (card_sealed)
@@ -170,7 +179,6 @@ int snd_avirt_stream_new(const char *name, unsigned int channels, int direction,
 
 int snd_avirt_card_seal()
 {
-  int err;
   char path_sealed[AVIRT_CONFIGFS_PATH_MAXLEN];
   FILE *fd;
 
@@ -181,12 +189,7 @@ int snd_avirt_card_seal()
     return -EPERM;
   }
 
-  if (!configfs_mounted)
-  {
-    err = mount_configfs();
-    if (err < 0)
-      return err;
-  }
+  IS_CONFIGFS_MOUNTED();
 
   strcpy(path_sealed, AVIRT_CONFIGFS_PATH_STREAMS);
   strcat(path_sealed, "/sealed");
