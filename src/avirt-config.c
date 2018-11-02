@@ -121,7 +121,6 @@ int snd_avirt_stream_new(const char *name, unsigned int channels, int direction,
   int err;
   char path[AVIRT_CONFIGFS_PATH_MAXLEN];
   char path_attr[AVIRT_CONFIGFS_PATH_MAXLEN];
-  FILE *fd;
 
   IS_CONFIGFS_MOUNTED();
 
@@ -180,7 +179,6 @@ int snd_avirt_stream_new(const char *name, unsigned int channels, int direction,
 int snd_avirt_card_seal()
 {
   char path_sealed[AVIRT_CONFIGFS_PATH_MAXLEN];
-  FILE *fd;
 
   // Check if card is already sealed
   if (card_sealed)
@@ -198,4 +196,6 @@ int snd_avirt_card_seal()
   AVIRT_DEBUG("Card sealed!");
 
   card_sealed = true;
+
+  return 0;
 }
