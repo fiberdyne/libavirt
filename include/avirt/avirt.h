@@ -23,6 +23,8 @@
 #ifndef _AVIRT_H_
 #define _AVIRT_H_
 
+#include <alsa/asoundlib.h>
+
 /**
  * snd_avirt_stream_new - Create a stream in AVIRT
  * @name: The name of the stream
@@ -53,5 +55,10 @@ int snd_avirt_stream_new(const char *name, unsigned int channels, int direction,
  * NOTE: Once this function is called, no more streams may be added.
  */
 int snd_avirt_card_seal();
+
+/**
+ * snd_avirt_pcm_info - 
+ */
+int snd_avirt_pcm_info(const char *pcm_name, snd_pcm_info_t *pcm_info);
 
 #endif // _AVIRT_H_

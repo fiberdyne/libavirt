@@ -30,6 +30,7 @@
 
 #define AVIRT_CONFIGFS_PATH_STREAMS "/config/snd-avirt/streams/"
 #define AVIRT_CONFIGFS_PATH_MAXLEN 64
+#define AVIRT_DEVICE_PATH "/dev/snd/by-path/platform-snd_avirt.0"
 
 #define AVIRT_ERROR(errmsg) \
   fprintf(stderr, "AVIRT ERROR: %s\n", errmsg);
@@ -43,6 +44,12 @@
 # define AVIRT_DEBUG_V(fmt, args...) \
   fprintf(stderr, "[%s]: AVIRT DEBUG: " fmt "\n", __func__, ##args);
 #endif
+
+/**
+ *  extracted IOCTLs from <alsa/asoundlib.h>
+ */
+#define _IOR_HACKED(type,nr,size)       _IOC(_IOC_READ,(type),(nr),size)
+#define SNDRV_CTL_IOCTL_CARD_INFO(size) _IOR_HACKED('U', 0x01, size)
 
 /**
  * Checks whether the configfs filesystem is mounted
@@ -72,6 +79,7 @@
 
 static bool configfs_mounted = false;
 static bool card_sealed = false;
+static int card_index = -1;
 
 static int mount_configfs()
 {
@@ -111,6 +119,50 @@ static int mount_configfs()
   }
   else
     AVIRT_ERROR("Failed to mount configfs filesystem!");
+
+  return err;
+}
+
+int snd_avirt_pcm_info(const char *pcm_name, snd_pcm_info_t *pcm_info)
+{
+  int pcm_dev = -1, err = 0;
+  snd_ctl_t *handle;
+  char name[32];
+
+  sprintf(name, "hw:%d", card_index);
+  if ((err = snd_ctl_open(&handle, name, 0)) < 0)
+  {
+    AVIRT_ERROR_V("control open (%i): %s", card_index, snd_strerror(err));
+    return err;
+  }
+
+  while (1)
+  {
+    if (snd_ctl_pcm_next_device(handle, &pcm_dev) < 0)
+      AVIRT_ERROR("snd_ctl_pcm_next_device");
+    if (pcm_dev < 0)
+    {
+      AVIRT_ERROR_V("Cannot find AVIRT device with name: %s", pcm_name)
+      err = -ENODEV;
+      goto exit_ctl;
+    }
+    snd_pcm_info_set_device(pcm_info, pcm_dev);
+    snd_pcm_info_set_subdevice(pcm_info, 0);
+    if ((err = snd_ctl_pcm_info(handle, pcm_info)) < 0)
+    {
+      if (err != -ENOENT)
+      {
+        AVIRT_ERROR_V("control digital audio info (%i): %s",
+                    card_index, snd_strerror(err));
+      }
+      continue;
+    }
+    if (!strcmp(pcm_name, snd_pcm_info_get_name(pcm_info)))
+      break;
+  }
+
+exit_ctl:
+  snd_ctl_close(handle);
 
   return err;
 }
@@ -178,6 +230,8 @@ int snd_avirt_stream_new(const char *name, unsigned int channels, int direction,
 
 int snd_avirt_card_seal()
 {
+  int open_dev, err = 0;
+  snd_ctl_card_info_t *card_info;
   char path_sealed[AVIRT_CONFIGFS_PATH_MAXLEN];
 
   // Check if card is already sealed
@@ -194,8 +248,33 @@ int snd_avirt_card_seal()
   WRITE_TO_PATH(path_sealed, "%d", 1);
 
   AVIRT_DEBUG("Card sealed!");
-
   card_sealed = true;
 
-  return 0;
+  usleep(20000); // Need to wait for the snd card to be registered
+  
+  // Get card index for AVIRT, now that it is registered
+  open_dev = open(AVIRT_DEVICE_PATH, O_RDONLY);
+  if (open_dev < 0)
+  {
+    AVIRT_ERROR_V("Could not open device with path: %s", AVIRT_DEVICE_PATH);
+    err = -ENODEV;
+    goto exit_dev;
+  }
+
+  snd_ctl_card_info_alloca(&card_info);
+  err = ioctl(open_dev,
+              SNDRV_CTL_IOCTL_CARD_INFO(snd_ctl_card_info_sizeof()),
+              card_info);
+    if (err < 0)
+    {
+      AVIRT_ERROR("Could not ioctl card info for AVIRT");
+      goto exit_dev;
+    }
+
+    card_index = snd_ctl_card_info_get_card(card_info);
+
+exit_dev:
+  close(open_dev);
+
+  return err;
 }
