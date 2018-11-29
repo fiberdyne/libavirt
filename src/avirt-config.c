@@ -89,7 +89,7 @@ static int mount_configfs()
   FILE *procfs;
   struct stat st = {0};
 
-  // Check for /proc/filesystem for configfs support
+  // Check for /proc/filesystems for configfs support
   procfs = fopen("/proc/filesystems", "r");
   if (!procfs)
     return -1;
@@ -221,6 +221,10 @@ int snd_avirt_stream_new(const char *name, unsigned int channels, int direction,
     strcpy(path_attr, path);
     strcat(path_attr, "/map");
     WRITE_TO_PATH(path_attr, "%s", map);
+  }
+  else
+  {
+    AVIRT_DEBUG("No map specified!");
   }
 
   AVIRT_DEBUG_V("Created stream: %s", name);
